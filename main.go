@@ -63,16 +63,6 @@ func main() {
 						Required: false,
 					},
 
-					// 是否生成Gin路由文件（默认不生成）
-					&cli.BoolFlag{
-						Name: "gin-router",
-						Aliases: []string{
-							"g",
-						},
-						Usage:    "Whether to output Gin framework routing file",
-						Required: false,
-					},
-
 					// 生成的Go文件的包名前缀（默认为空）
 					&cli.StringFlag{
 						Name: "pack-prefix",
@@ -81,6 +71,17 @@ func main() {
 						},
 						Value:    "",
 						Usage:    "Package prefix of the generated Go file",
+						Required: false,
+					},
+
+					// 是否生成Gin路由文件（默认不生成）
+					&cli.BoolFlag{
+						Name: "gin-router",
+						Aliases: []string{
+							"g",
+						},
+						Value:    false,
+						Usage:    "Whether to output Gin framework routing file",
 						Required: false,
 					},
 				},

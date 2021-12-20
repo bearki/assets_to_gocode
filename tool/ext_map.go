@@ -29,9 +29,6 @@ var extMapContentType = map[string][]string{
 	"text/css; charset=utf-8": {
 		".css",
 	},
-	"text/plain; charset=utf-8": {
-		".txt",
-	},
 	"image/x-icon": {
 		".ico",
 	},
@@ -194,9 +191,6 @@ var extMapContentType = map[string][]string{
 		".jpg",
 		".jpeg",
 	},
-	"application/x-jpg": {
-		".jpg",
-	},
 	"application/x-laplayer-reg": {
 		".lar",
 	},
@@ -249,7 +243,6 @@ var extMapContentType = map[string][]string{
 	},
 	"application/x-javascript": {
 		".ls",
-		".js",
 		".mocha",
 	},
 	"audio/mp1": {
@@ -310,9 +303,6 @@ var extMapContentType = map[string][]string{
 	},
 	"application/x-plt": {
 		".plt",
-	},
-	"application/x-png": {
-		".png",
 	},
 	"application/vnd.ms-powerpoint": {
 		".ppa",
@@ -384,7 +374,7 @@ var extMapContentType = map[string][]string{
 		".smi",
 		".smil",
 	},
-	"text/plain": {
+	"text/plain; charset=utf-8": {
 		".txt",
 		".sol",
 		".sor",
@@ -564,9 +554,6 @@ var extMapContentType = map[string][]string{
 	"application/x-cot": {
 		".cot",
 	},
-	"text/css": {
-		".css",
-	},
 	"application/x-dbf": {
 		".dbf",
 	},
@@ -621,9 +608,6 @@ var extMapContentType = map[string][]string{
 	},
 	"application/x-icb": {
 		".icb",
-	},
-	"application/x-ico": {
-		".ico",
 	},
 	"application/x-iphone": {
 		".iii",
