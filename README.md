@@ -5,15 +5,10 @@
 
 1. 不含gin框架路由文件
 ```bat
-go-endata create -s ./tests/test_src -o ./tests/test_dst -a Bearki
+go-endata create -v -s ./tests/test_src -o ./tests/test_dst -a Bearki
 ```
 
 2. 包含gin框架路由文件
 ```bat
-go-endata create ^
--s ./tests/test_src ^
--o ./tests/test_dst ^
--a Bearki ^
---pack-prefix git.yoyo.link/yoyo/sdk/service/httpservice ^
--g
+go-endata create -v -s ./tests/test_src -o ./tests/test_dst -a Bearki -g true -p github.com/bearki/go-endata
 ```

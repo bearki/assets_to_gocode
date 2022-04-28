@@ -3,12 +3,12 @@
 package tool
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -29,12 +29,18 @@ func RunTool(params InputParams) error {
 		return fmt.Errorf("does not support absolute path as output destination path")
 	}
 
+	// 提取根包名
+	rootPackage := filepath.Base(outPath)
+
 	// 覆盖默认数据
 	globalParams.SrcPath = srcPath
 	globalParams.OutDirPath = outPath
 	globalParams.Author = params.Author
-	globalParams.OutGinRouter = params.OutGinRouter
 	globalParams.PackPrefix = params.PackPrefix
+	globalParams.ShowDetail = params.ShowDetail
+	globalParams.rootPackage = rootPackage
+
+	fmt.Println(params.PackPrefix)
 
 	// 配置后缀与资源的对应关系
 	err := setContentType()
@@ -49,21 +55,16 @@ func RunTool(params InputParams) error {
 	}
 
 	// 判断是否需要生成路由文件
-	if globalParams.OutGinRouter {
+	if len(globalParams.PackPrefix) > 0 {
 		// 路由文件的包名（取输出文件夹路径的最后一个文件夹为包名）
-		routerPackageName := globalParams.OutDirPath[strings.LastIndex(globalParams.OutDirPath, "/")+1:]
+		routerPackageName := rootPackage
 		// 拼接路由文件需要用到的包
 		var importPackage string
 		// 执行循环拼接
-		for key, val := range packageCache {
+		for key, _ := range packageCache {
 			// 过滤掉与路由同级的包
-			if key != routerPackageName {
-				// 判断是否需要添加包前缀路径
-				if len(globalParams.PackPrefix) > 0 && val {
-					importPackage += fmt.Sprintf("	\"%s/%s\"\n", globalParams.PackPrefix, key)
-				} else {
-					importPackage += fmt.Sprintf("	\"%s\"\n", key)
-				}
+			if key != fmt.Sprintf("%s/%s", globalParams.PackPrefix, routerPackageName) {
+				importPackage += fmt.Sprintf("\t\"%s\"\n", key)
 			}
 		}
 		// 创建路由文件
@@ -75,8 +76,6 @@ func RunTool(params InputParams) error {
 			importPackage,                         // 引入包
 			routerContentCache,                    // 路由内容
 		))
-		// 替换与路由统计的函数调用
-		data = bytes.ReplaceAll(data, []byte(routerPackageName+"."), nil)
 		// 创建文件
 		err = ioutil.WriteFile(
 			filepath.Join(globalParams.OutDirPath, "router.go"),
@@ -104,8 +103,6 @@ func RangeDir(dirPath string) error {
 	}
 	// 遍历文件夹
 	for _, fi := range fileInfos {
-		// 显示下进度
-		// fmt.Printf("正在处理: %d/%d\n", i+1, len(fileInfos))
 		// 拼接完整路径
 		filePath := filepath.Join(dirPath, fi.Name())
 		// 判断是否是文件夹
@@ -127,13 +124,11 @@ func RangeDir(dirPath string) error {
 }
 
 // createGoFile 创建GO文件
-// @params filePath string 文件完整路径
-// @return error
-func createGoFile(filePath string) error {
-
+// @params srcFilePath string 文件完整路径
+// @return             error
+func createGoFile(srcFilePath string) error {
 	// 拆分文件夹与文件名
-	fileDirPath, fileBaseName := filepath.Split(filePath)
-
+	fileDirPath, fileBaseName := filepath.Split(srcFilePath)
 	// 将源文件夹替换成目标文件夹
 	newDirPath := strings.Replace(
 		fileDirPath,
@@ -141,22 +136,60 @@ func createGoFile(filePath string) error {
 		globalParams.OutDirPath,
 		1,
 	)
+	// GO的文件名，只需要末尾添加.go即可
+	goFilePath := filepath.Join(newDirPath, fileBaseName) + ".go"
+
+	// 是否需要显示详情
+	if globalParams.ShowDetail {
+		// 显示下进度
+		log.Printf("正在处理: %s\n", srcFilePath)
+	}
 
 	// 根据文件名计算函数名
-	tempFunName := strings.ReplaceAll(fileBaseName, ".", "_") // 替换特殊字符
-	tempFunName = strings.ReplaceAll(tempFunName, "-", "_")   // 替换特殊字符
-	funcName := "Get_" + tempFunName                          // 拼接函数名
+	funcName := strings.ReplaceAll(fileBaseName, ".", "_") // 替换特殊字符
+	funcName = strings.ReplaceAll(funcName, "-", "_")      // 替换特殊字符
+	funcName = "Get_" + funcName                           // 拼接函数名
 
-	// 根据文件夹路径计算包路径和当前文件包名
-	// 剔除多余符号
-	tempPackPath := filepath.Clean(newDirPath)
-	// 将文件路径转换为"/"
-	packagePath := strings.ReplaceAll(tempPackPath, "\\", "/")
-	// 最后一个包名就是当前文件包名
-	packageName := packagePath[strings.LastIndex(packagePath, "/")+1:]
+	// 根据文件夹路径计算当前包完整路径和当前包
+	// 移除目标文件夹
+	packagePath := strings.Replace(newDirPath, globalParams.OutDirPath, "", 1)
+	// 清除多余符号
+	packagePath = filepath.Clean(packagePath)
+	// 将"\"替换为"/"
+	packagePath = strings.ReplaceAll(packagePath, "\\", "/")
+	// 当开头为"/"时需要移除
+	ok, err := regexp.MatchString(`^/.*$`, packagePath)
+	if err != nil {
+		return err
+	}
+	if ok {
+		// 移除
+		packagePath = packagePath[1:]
+	}
+	// 拼接上前缀得到的便是包完整路径
+	if len(globalParams.PackPrefix) > 0 {
+		if len(packagePath) > 0 {
+			// 包路径 = 包前缀 + 根包名 + 当前包名
+			packagePath = globalParams.PackPrefix + "/" + globalParams.rootPackage + "/" + packagePath
+		} else {
+			// 包路径 = 包前缀 + 根包名 + 当前包名
+			packagePath = globalParams.PackPrefix + "/" + globalParams.rootPackage
+		}
+	} else {
+		if len(packagePath) > 0 {
+			// 包路径 = 根包名 + 当前包名
+			packagePath = globalParams.rootPackage + "/" + packagePath
+		} else {
+			// 包路径 = 根包名
+			packagePath = globalParams.rootPackage
+		}
+	}
+
+	// 最后一个路径就是当前文件包名
+	packageName := filepath.Base(packagePath)
 
 	// 读取文件内容
-	data, err := ioutil.ReadFile(filePath)
+	data, err := ioutil.ReadFile(srcFilePath)
 	if err != nil {
 		return err
 	}
@@ -164,11 +197,16 @@ func createGoFile(filePath string) error {
 	var tempData []string
 	for i, v := range data {
 		if i > 0 && i%20 == 0 {
-			tempData = append(tempData, "\n")
-			tempData = append(tempData, fmt.Sprintf("        0x%02x", v))
+			tempData = append(tempData, fmt.Sprintf("\n\t\t0x%02x", v))
 		} else {
 			tempData = append(tempData, fmt.Sprintf("0x%02x", v))
 		}
+	}
+
+	// 将要写入的数据
+	var writeData string = strings.Join(tempData, ", ")
+	if len(tempData) > 0 {
+		writeData += ","
 	}
 
 	// 格式化内容
@@ -178,7 +216,7 @@ func createGoFile(filePath string) error {
 		time.Now().Format("2006/01/02 15:04"), // 创建时间
 		packageName,                           // 包名
 		funcName,                              // 函数名
-		strings.ReplaceAll(strings.Join(tempData, ", "), "\n, ", "\n"), // 静态文件流
+		writeData,                             // 静态文件流
 	))
 
 	// 创建Go文件的文件夹
@@ -186,8 +224,7 @@ func createGoFile(filePath string) error {
 	if err != nil {
 		return err
 	}
-	// 将文件路径用作GO的文件名，只需要末尾添加.go即可
-	goFilePath := filepath.Join(newDirPath, fileBaseName) + ".go"
+
 	// 生成文件
 	err = ioutil.WriteFile(goFilePath, data, 0666)
 	if err != nil {
@@ -195,30 +232,37 @@ func createGoFile(filePath string) error {
 	}
 
 	// 判断是否需要生成路由文件
-	if globalParams.OutGinRouter {
+	if len(globalParams.PackPrefix) > 0 {
 		// 当前包路径缓存到全局
 		packageCache[packagePath] = true
 
 		// 匹配媒体资源类型
 		contentType := getContentType(filepath.Ext(fileBaseName))
 
-		//  路由地址（包路径去掉目标文件夹路径再加上原始文件名就是路由地址）
-		raplaceStr := strings.ReplaceAll(globalParams.OutDirPath, "\\", "/")
+		//  路由地址
 		routerPath := strings.Replace(
 			packagePath+"/"+fileBaseName,
-			raplaceStr, // 将目标路径文件夹分隔符转换为"/",不然匹配不到无法替换
+			globalParams.PackPrefix+"/"+globalParams.rootPackage,
 			"",
 			1,
 		)
+		// 非根包需要前置包名
+		if packageName != globalParams.rootPackage {
+			funcName = fmt.Sprintf("%s.%s", packageName, funcName)
+		}
 		// 追加路由
 		routerContentCache += fmt.Sprintf(
 			routerContentFormat, // 单条路由格式
 			routerPath,          // 路由地址
 			contentType,         // 资源类型
-			packageName,         // 包名
 			funcName,            // 函数名
 		)
 	}
 
+	// 是否需要显示详情
+	if globalParams.ShowDetail {
+		// 显示下进度
+		log.Printf("处理完成: %s\n", goFilePath)
+	}
 	return nil
 }

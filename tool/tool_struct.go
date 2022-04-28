@@ -4,20 +4,22 @@ package tool
 
 // InputParams 参数结构
 type InputParams struct {
-	SrcPath      string // 需要编码的文件或文件夹路径
-	OutDirPath   string // 编码后输出的文件夹路径
-	Author       string // 文件作者（默认为空）
-	OutGinRouter bool   // 是否输出Gin路由文件（默认不输出）
-	PackPrefix   string // Gin路由文件引入时的包名前缀
+	rootPackage string // 根包名
+	SrcPath     string // 需要编码的文件或文件夹路径
+	OutDirPath  string // 编码后输出的文件夹路径
+	Author      string // 文件作者（默认为空）
+	PackPrefix  string // Gin路由文件引入时的包名前缀
+	ShowDetail  bool   // 是否显示详细信息
 }
 
 // globalParams 全局参数
 var globalParams = InputParams{
-	SrcPath:      "",    // 需要编码的文件或文件夹路径
-	OutDirPath:   "",    // 编码后输出的文件夹路径
-	Author:       "",    // 文件作者（默认为空）
-	OutGinRouter: false, // 是否输出Gin路由文件（默认不输出）
-	PackPrefix:   "",    // Gin路由文件引入时的包名前缀
+	rootPackage: "out", // 根包名
+	SrcPath:     "",    // 需要编码的文件或文件夹路径
+	OutDirPath:  "",    // 编码后输出的文件夹路径
+	Author:      "",    // 文件作者（默认为空）
+	PackPrefix:  "",    // Gin路由文件引入时的包名前缀
+	ShowDetail:  false, // 是否显示详细信息
 }
 
 // 全局缓存用到的包名，值表示该包是否要拼接前缀
@@ -42,7 +44,7 @@ package %s
 
 func %s() []byte {
 	return []byte{
-		%s,
+		%s
 	}
 }`
 
@@ -63,13 +65,13 @@ import (
 
 // 请从外部传入一个路由分组即可
 func InitRouter(r *gin.RouterGroup) {
-	%s
+%s
 }
 `
 
 // 路由内容格式
 var routerContentFormat = `
 	r.GET("%s", func(c *gin.Context) {
-		c.Data(http.StatusOK, "%s", %s.%s())
+		c.Data(http.StatusOK, "%s", %s())
 	})
 `

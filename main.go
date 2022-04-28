@@ -11,7 +11,7 @@ import (
 
 // 入口
 func main() {
-	log.Printf("工具运行中···\n")
+	log.Println("工具运行中···")
 
 	// 获取可执行文件的名称
 	execFileName := filepath.Base(os.Args[0])
@@ -64,7 +64,7 @@ func main() {
 						Required: false,
 					},
 
-					// 生成的Go文件的包名前缀（默认为空）
+					// 生成的Gin路由文件使用到的包名前缀（默认为空）
 					&cli.StringFlag{
 						Name: "pack-prefix",
 						Aliases: []string{
@@ -75,25 +75,25 @@ func main() {
 						Required: false,
 					},
 
-					// 是否生成Gin路由文件（默认不生成）
+					// 是否显示详细信息
 					&cli.BoolFlag{
-						Name: "gin-router",
+						Name: "view",
 						Aliases: []string{
-							"g",
+							"v",
 						},
 						Value:    false,
-						Usage:    "Whether to output Gin framework routing file",
+						Usage:    "whether to show detailed information",
 						Required: false,
 					},
 				},
 				Action: func(c *cli.Context) error {
 					// 执行Go文件生成
 					return tool.RunTool(tool.InputParams{
-						SrcPath:      c.String("src"),
-						OutDirPath:   c.String("out"),
-						Author:       c.String("author"),
-						OutGinRouter: c.Bool("gin-router"),
-						PackPrefix:   c.String("pack-prefix"),
+						SrcPath:    c.String("src"),
+						OutDirPath: c.String("out"),
+						Author:     c.String("author"),
+						PackPrefix: c.String("pack-prefix"),
+						ShowDetail: c.Bool("view"),
 					})
 				},
 			},
@@ -116,5 +116,5 @@ func main() {
 		log.Fatalf("工具运行错误: %s", err.Error())
 		return
 	}
-	log.Printf("工具运行成功\n")
+	log.Println("工具运行成功")
 }
