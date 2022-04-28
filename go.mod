@@ -1,4 +1,4 @@
-module github.com/bearki/assets_to_gocode
+module github.com/bearki/go-endata
 
 go 1.17
 

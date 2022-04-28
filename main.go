@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bearki/assets_to_gocode/tool"
+	"github.com/bearki/go-endata/tool"
 	"github.com/urfave/cli/v2"
 )
 
