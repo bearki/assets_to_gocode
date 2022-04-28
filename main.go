@@ -22,7 +22,7 @@ func main() {
 		Name:      "AssetsToGoCode",
 		Usage:     "Encode static resources into Golang code",
 		UsageText: execFileName + " command [command options]",
-		Version:   "v0.0.1",
+		Version:   "v0.0.2",
 
 		// 命令列表
 		Commands: []*cli.Command{
