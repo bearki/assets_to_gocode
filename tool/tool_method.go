@@ -162,8 +162,13 @@ func createGoFile(filePath string) error {
 	}
 	// 文件Byte转换为字符串数组
 	var tempData []string
-	for _, v := range data {
-		tempData = append(tempData, fmt.Sprint(v))
+	for i, v := range data {
+		if i > 0 && i%20 == 0 {
+			tempData = append(tempData, "\n")
+			tempData = append(tempData, fmt.Sprintf("        0x%02x", v))
+		} else {
+			tempData = append(tempData, fmt.Sprintf("0x%02x", v))
+		}
 	}
 
 	// 格式化内容
@@ -173,7 +178,7 @@ func createGoFile(filePath string) error {
 		time.Now().Format("2006/01/02 15:04"), // 创建时间
 		packageName,                           // 包名
 		funcName,                              // 函数名
-		strings.Join(tempData, ", "),          // 静态文件流
+		strings.ReplaceAll(strings.Join(tempData, ", "), "\n, ", "\n"), // 静态文件流
 	))
 
 	// 创建Go文件的文件夹
